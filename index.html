@@ -3006,9 +3006,30 @@
             void newView.offsetWidth; 
             newView.classList.add('animate-fade-in');
 
+            // Desktop Sidebar Updates
             document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
             const navLink = document.getElementById(`nav-link-${view}`);
             if(navLink) navLink.classList.add('active');
+
+            // Mobile Bottom Nav Updates
+            document.querySelectorAll('.mobile-nav-link').forEach(el => {
+                el.classList.remove('text-blue-600', 'text-purple-600', 'active', 'font-bold');
+                el.classList.add('text-slate-400', 'font-medium');
+                // Reset icons if needed (optional)
+            });
+
+            const mobileLink = document.getElementById(`mobile-nav-${view}`);
+            if(mobileLink) {
+                mobileLink.classList.remove('text-slate-400', 'font-medium');
+                mobileLink.classList.add('active', 'font-bold');
+                
+                // Color logic based on view
+                if (view === 'collaborate' || view === 'saved') {
+                    mobileLink.classList.add('text-purple-600');
+                } else {
+                    mobileLink.classList.add('text-blue-600');
+                }
+            }
             
             if(view === 'saved') renderSavedPosts();
             if(view === 'collaborate') renderCollaborate();
