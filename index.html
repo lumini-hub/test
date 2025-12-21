@@ -366,7 +366,7 @@
         <div id="mobile-bottom-nav" class="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-safe">
             <div class="mx-auto max-w-[1440px]">
                 <div class="mx-3 mb-3 rounded-2xl shadow-2xl border border-slate-200 bg-white/95 backdrop-blur-xl">
-                    <div class="grid grid-cols-5 text-xs font-semibold text-slate-500">
+                    <div class="grid grid-cols-4 text-xs font-semibold text-slate-500">
                         <button onclick="router('feed'); highlightMobileTab('feed')" class="flex flex-col items-center justify-center py-3 gap-1">
                             <i class="fa-solid fa-house"></i>
                             <span>Home</span>
@@ -382,11 +382,6 @@
                         <button onclick="router('network'); highlightMobileTab('network')" class="flex flex-col items-center justify-center py-3 gap-1">
                             <i class="fa-solid fa-user-group"></i>
                             <span>Network</span>
-                        </button>
-                        <button onclick="router('messaging'); highlightMobileTab('messaging')" class="flex flex-col items-center justify-center py-3 gap-1 relative">
-                            <i class="fa-solid fa-comment-dots"></i>
-                            <span>Messages</span>
-                            <span id="mobile-chat-badge" class="notification-dot" style="display:none; right:14px; top:6px;"></span>
                         </button>
                     </div>
                 </div>
@@ -742,10 +737,76 @@
             </div>
 
             <!-- The Launcher Button -->
-            <button onclick="toggleFloatingWidget()" id="floating-launcher" class="absolute bottom-0 right-0 w-14 h-14 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-blue-500/50 transition-all duration-500 cubic-bezier(0.19, 1, 0.22, 1) flex items-center justify-center btn-bounce z-10 cursor-move">
+            <button onclick="toggleFloatingWidget()" id="floating-launcher" class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-blue-500/50 transition-all duration-500 cubic-bezier(0.19, 1, 0.22, 1) flex items-center justify-center btn-bounce z-10 cursor-move touch-none">
                 <i class="fa-solid fa-comment-dots text-2xl"></i>
             </button>
         </div>
+        
+        <script>
+            // Draggable floating launcher (mobile + desktop)
+            (function(){
+                const launcher = document.getElementById('floating-launcher');
+                if(!launcher) return;
+
+                let dragging = false;
+                let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+                const getPoint = (e) => {
+                    if(e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                    return { x: e.clientX, y: e.clientY };
+                };
+
+                const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+                const onStart = (e) => {
+                    dragging = true;
+                    const lrect = launcher.getBoundingClientRect();
+                    startLeft = lrect.left;
+                    startTop = lrect.top;
+                    const p = getPoint(e);
+                    startX = p.x; startY = p.y;
+                    e.preventDefault();
+                };
+                const onMove = (e) => {
+                    if(!dragging) return;
+                    const p = getPoint(e);
+                    const dx = p.x - startX; const dy = p.y - startY;
+                    const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                    const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+                    const lrect = launcher.getBoundingClientRect();
+                    const left = clamp(startLeft + dx, 8, vw - lrect.width - 8);
+                    const top = clamp(startTop + dy, 8, vh - lrect.height - 8);
+                    launcher.style.right = 'auto';
+                    launcher.style.bottom = 'auto';
+                    launcher.style.left = left + 'px';
+                    launcher.style.top = top + 'px';
+                };
+                const onEnd = () => { dragging = false; };
+
+                launcher.addEventListener('mousedown', onStart);
+                window.addEventListener('mousemove', onMove);
+                window.addEventListener('mouseup', onEnd);
+
+                launcher.addEventListener('touchstart', onStart, { passive: false });
+                window.addEventListener('touchmove', onMove, { passive: false });
+                window.addEventListener('touchend', onEnd, { passive: true });
+
+                // Keep above bottom mobile nav by default
+                function nudgeFromBottomUI(){
+                    const mobileNav = document.getElementById('mobile-bottom-nav');
+                    if(!mobileNav) return;
+                    const navRect = mobileNav.getBoundingClientRect();
+                    const lrect = launcher.getBoundingClientRect();
+                    if(lrect.bottom > navRect.top){
+                        const top = Math.max(8, navRect.top - lrect.height - 12);
+                        launcher.style.top = top + 'px';
+                        launcher.style.bottom = 'auto';
+                    }
+                }
+                window.addEventListener('load', nudgeFromBottomUI);
+                window.addEventListener('resize', nudgeFromBottomUI);
+            })();
+        </script>
 
         <!-- Modals -->
 
