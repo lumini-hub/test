@@ -361,6 +361,73 @@
                 </div>
             </div>
         </nav>
+        
+        <!-- Bottom Mobile Nav (new) -->
+        <div id="mobile-bottom-nav" class="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-safe">
+            <div class="mx-auto max-w-[1440px]">
+                <div class="mx-3 mb-3 rounded-2xl shadow-2xl border border-slate-200 bg-white/95 backdrop-blur-xl">
+                    <div class="grid grid-cols-5 text-xs font-semibold text-slate-500">
+                        <button onclick="router('feed'); highlightMobileTab('feed')" class="flex flex-col items-center justify-center py-3 gap-1">
+                            <i class="fa-solid fa-house"></i>
+                            <span>Home</span>
+                        </button>
+                        <button onclick="viewMyProfile(); highlightMobileTab('profile')" class="flex flex-col items-center justify-center py-3 gap-1">
+                            <i class="fa-solid fa-user"></i>
+                            <span>Profile</span>
+                        </button>
+                        <button onclick="router('collaborate'); highlightMobileTab('collaborate')" class="flex flex-col items-center justify-center py-3 gap-1">
+                            <i class="fa-solid fa-rocket"></i>
+                            <span>Projects</span>
+                        </button>
+                        <button onclick="router('network'); highlightMobileTab('network')" class="flex flex-col items-center justify-center py-3 gap-1">
+                            <i class="fa-solid fa-user-group"></i>
+                            <span>Network</span>
+                        </button>
+                        <button onclick="router('messaging'); highlightMobileTab('messaging')" class="flex flex-col items-center justify-center py-3 gap-1 relative">
+                            <i class="fa-solid fa-comment-dots"></i>
+                            <span>Messages</span>
+                            <span id="mobile-chat-badge" class="notification-dot" style="display:none; right:14px; top:6px;"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            // Keep active state in bottom nav in sync with router
+            function highlightMobileTab(tab){
+                try{
+                    const labels = { feed:'Home', profile:'Profile', collaborate:'Projects', network:'Network', messaging:'Messages' };
+                    // No heavy DOM operations; visually we rely on color change
+                    const root = document.getElementById('mobile-bottom-nav');
+                    if(!root) return;
+                    root.querySelectorAll('button').forEach(btn=>{
+                        btn.classList.remove('text-blue-600');
+                        btn.classList.add('text-slate-500');
+                    });
+                    const map = {
+                        feed: 0,
+                        profile: 1,
+                        collaborate: 2,
+                        network: 3,
+                        messaging: 4
+                    };
+                    const idx = map[tab];
+                    const target = root.querySelectorAll('button')[idx];
+                    if(target){
+                        target.classList.remove('text-slate-500');
+                        target.classList.add('text-blue-600');
+                    }
+                }catch(e){ /* silent */ }
+            }
+
+            // Optional: expose a small hook to update badge
+            function setMobileChatBadge(visible){
+                const el = document.getElementById('mobile-chat-badge');
+                if(!el) return;
+                el.style.display = visible ? 'block' : 'none';
+            }
+        </script>
 
         <!-- Auth Overlay -->
         <div id="auth-overlay" class="fixed inset-0 bg-slate-50 z-[60] flex items-center justify-center p-4 md:p-8 transition-all duration-700 ease-in-out overflow-hidden">
@@ -3006,30 +3073,9 @@
             void newView.offsetWidth; 
             newView.classList.add('animate-fade-in');
 
-            // Desktop Sidebar Updates
             document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
             const navLink = document.getElementById(`nav-link-${view}`);
             if(navLink) navLink.classList.add('active');
-
-            // Mobile Bottom Nav Updates
-            document.querySelectorAll('.mobile-nav-link').forEach(el => {
-                el.classList.remove('text-blue-600', 'text-purple-600', 'active', 'font-bold');
-                el.classList.add('text-slate-400', 'font-medium');
-                // Reset icons if needed (optional)
-            });
-
-            const mobileLink = document.getElementById(`mobile-nav-${view}`);
-            if(mobileLink) {
-                mobileLink.classList.remove('text-slate-400', 'font-medium');
-                mobileLink.classList.add('active', 'font-bold');
-                
-                // Color logic based on view
-                if (view === 'collaborate' || view === 'saved') {
-                    mobileLink.classList.add('text-purple-600');
-                } else {
-                    mobileLink.classList.add('text-blue-600');
-                }
-            }
             
             if(view === 'saved') renderSavedPosts();
             if(view === 'collaborate') renderCollaborate();
