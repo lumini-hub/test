@@ -89,8 +89,8 @@
     </script>
 
     <style>
-        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255, 255, 255, 0.3); }
-        .glass-card { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.6); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(226, 232, 240, 0.4); }
+        .glass-card { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(226, 232, 240, 0.5); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .glass-card:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025); }
         
         /* Collapsible Section Styles - Hover to expand */
@@ -151,7 +151,8 @@
         }
 
         html.dark .sidebar-overlay { background: rgba(15, 23, 42, 0.95); }
-        .sidebar-overlay { background: rgba(248, 250, 252, 0.97); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+        .sidebar-overlay { background: rgba(248, 250, 252, 0.97); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0,0,0,0.08); border-right: 1px solid rgba(226, 232, 240, 0.5); }
+        .sidebar-overlay.right-panel { border-right: none; border-left: 1px solid rgba(226, 232, 240, 0.5); }
 
         .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; font-weight: 500; font-size: 0.95rem; color: #64748b; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; position: relative; overflow: hidden; }
         .sidebar-link:hover { background-color: rgba(255, 255, 255, 0.6); color: #1e293b; transform: translateX(3px); }
@@ -217,7 +218,7 @@
         .msg-them { 
             background: #ffffff; color: #1e293b; 
             border-bottom-left-radius: 6px; margin-right: auto; 
-            border: 1px solid #f1f5f9;
+            border: 1px solid #e2e8f0;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
             transform-origin: bottom left;
         }
@@ -258,7 +259,7 @@
         #typing-indicator-container { max-width: fit-content; }
         .typing-indicator {
             display: inline-flex; align-items: center; gap: 3px; padding: 8px 14px;
-            background: #ffffff; border: 1px solid #f1f5f9; border-radius: 20px; 
+            background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; 
             border-bottom-left-radius: 6px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
             animation: msgMorphIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
@@ -3365,9 +3366,11 @@
                 const changes = snap.docChanges();
                 const hasStructuralChange = isFirstPostLoad || changes.some(c => c.type === 'added' || c.type === 'removed');
                 isFirstPostLoad = false;
-                if(hasStructuralChange) {
+                const hasCategoryChange = changes.some(c => c.type === 'modified' && c.doc.data().category !== undefined);
+                if(hasStructuralChange || hasCategoryChange) {
                     if(!document.getElementById('view-feed').classList.contains('hidden')) renderFeed(posts);
                     if(!document.getElementById('view-collaborate').classList.contains('hidden')) renderCollaborate();
+                    if(!document.getElementById('view-feedback').classList.contains('hidden')) renderFeedback();
                 } else {
                     changes.forEach(c => {
                         if(c.type === 'modified') {
@@ -3662,7 +3665,9 @@
                         if ((change.type === 'added' || change.type === 'modified') &&
                             data.participants && data.participants.includes(currentUser.uid) &&
                             isUnread && hasNewMessage) {
-                             if (currentChatId !== chatId && window.currentFloatingChatId !== chatId) {
+                             const mainChatOpen = currentChatId === chatId && !document.getElementById('view-messaging').classList.contains('hidden');
+                             const floatingChatOpen = window.currentFloatingChatId === chatId && window.isFloatingWidgetOpen;
+                             if (!mainChatOpen && !floatingChatOpen) {
                                  window.playNotificationSound();
                              }
                         }
@@ -4553,6 +4558,16 @@ ${mediaHtml}
             }
             document.getElementById('edit-group-modal').classList.add('hidden');
             document.getElementById('chat-header-name').innerText = newName;
+            if(window.allChats) {
+                const chatObj = window.allChats.find(ch => ch.id === currentChatId);
+                if(chatObj) {
+                    chatObj.groupName = newName;
+                    if(newPhoto) chatObj.groupPhoto = newPhoto;
+                    else chatObj.groupPhoto = null;
+                    renderChatList(window.allChats);
+                    if(window.isFloatingWidgetOpen) renderFloatingChatList();
+                }
+            }
             showToast('Group updated');
         };
 
@@ -5717,7 +5732,7 @@ ${mediaHtml}
             const adminBadge = postAuthorIsAdmin ? `<span class="admin-badge">Admin 🛡️</span>` : '';
             const verifiedBadge = postAuthor?.isVerified ? `<span class="verified-badge" title="Verified"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#2563eb"/><path d="M9 12l2 2 4-4" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : '';
 
-            return `<div id="post-${post.id}-${context}" class="glass-card rounded-2xl bg-white p-0 overflow-hidden animate-slide-up mb-4 hover:shadow-lg transition-shadow duration-300">
+            return `<div id="post-${post.id}-${context}" class="glass-card rounded-2xl bg-white p-0 animate-slide-up mb-4 hover:shadow-lg transition-shadow duration-300">
                 <div class="p-4 flex gap-3">
                     <img src="${post.photoURL}" class="w-10 h-10 rounded-full bg-slate-100 object-cover cursor-pointer hover:scale-105 transition-transform" onclick="viewProfile('${post.uid}')">
                     <div class="flex-grow">
@@ -5730,7 +5745,7 @@ ${mediaHtml}
                             </div>
                             <div class="relative">
                                 <button onclick="toggleMenu('${post.id}', '${context}')" class="text-slate-400 hover:bg-slate-100 w-8 h-8 rounded-full transition-colors btn-bounce"><i class="fa-solid fa-ellipsis"></i></button>
-                                <div id="menu-${post.id}-${context}" class="hidden absolute right-0 top-8 bg-white shadow-xl border border-slate-100 rounded-xl py-2 w-32 z-10 animate-pop-in origin-top-right">
+                                <div id="menu-${post.id}-${context}" class="hidden absolute right-0 top-8 bg-white shadow-xl border border-slate-100 rounded-xl py-2 w-40 z-50 animate-pop-in origin-top-right">
                                     <button onclick="savePost('${post.id}')" class="w-full text-left px-4 py-2 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-colors">${saveText}</button>
                                     ${canEdit ? `<button onclick="editPost('${post.id}')" class="w-full text-left px-4 py-2 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-colors">Edit</button>` : ''}
                                     ${canDelete ? `<button onclick="initiateDelete('${post.id}', '${post.uid}')" class="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 text-sm font-bold transition-colors">Delete</button>` : ''}
@@ -5748,8 +5763,8 @@ ${mediaHtml}
                     ${post.text && post.text.length > 300 ? `<span class="see-more-btn" onclick="toggleSeeMore('post-text-${post.id}-${context}', this)">See more</span>` : ''}
                     <div class="mt-2 flex flex-wrap gap-2">${tags}</div>
                 </div>
-                ${post.attachment ? `<div class="mt-2 overflow-hidden bg-slate-100 flex items-center justify-center">${(post.attachmentType === 'video' || post.attachment.match(/\.(mp4|webm|mov|ogg)($|\?)/i) || post.attachment.includes('/video/upload/')) ? `<div class="post-video-wrapper paused pv-show-controls"><video src="${post.attachment}" class="w-full max-h-[500px] object-contain" preload="metadata" playsinline></video><button class="post-video-big-play"><i class="fa-solid fa-play" style="margin-left:3px"></i></button><div class="post-video-controls"><div class="pv-row"><button class="pv-play-btn"><i class="fa-solid fa-play"></i></button><div class="pv-progress-track"><div class="pv-progress-fill" style="width:0%"></div><div class="pv-progress-thumb" style="left:0%"></div></div><span class="pv-time">0:00 / 0:00</span><button class="pv-vol-btn"><i class="fa-solid fa-volume-high"></i></button><button class="pv-fs-btn"><i class="fa-solid fa-expand"></i></button></div></div></div>` : `<img src="${post.attachment}" class="w-full max-h-[500px] object-contain hover:scale-[1.01] transition-transform duration-500 cursor-pointer" onclick="openLightbox(this.src)">`}</div>` : ''}
-                <div class="px-4 py-3 border-t border-slate-100 flex gap-1">
+                ${post.attachment ? `<div class="mt-2 overflow-hidden rounded-none bg-slate-100 flex items-center justify-center">${(post.attachmentType === 'video' || post.attachment.match(/\.(mp4|webm|mov|ogg)($|\?)/i) || post.attachment.includes('/video/upload/')) ? `<div class="post-video-wrapper paused pv-show-controls"><video src="${post.attachment}" class="w-full max-h-[500px] object-contain" preload="metadata" playsinline></video><button class="post-video-big-play"><i class="fa-solid fa-play" style="margin-left:3px"></i></button><div class="post-video-controls"><div class="pv-row"><button class="pv-play-btn"><i class="fa-solid fa-play"></i></button><div class="pv-progress-track"><div class="pv-progress-fill" style="width:0%"></div><div class="pv-progress-thumb" style="left:0%"></div></div><span class="pv-time">0:00 / 0:00</span><button class="pv-vol-btn"><i class="fa-solid fa-volume-high"></i></button><button class="pv-fs-btn"><i class="fa-solid fa-expand"></i></button></div></div></div>` : `<img src="${post.attachment}" class="w-full max-h-[500px] object-contain hover:scale-[1.01] transition-transform duration-500 cursor-pointer" onclick="openLightbox(this.src)">`}</div>` : ''}
+                <div class="px-4 py-3 border-t border-slate-200/60 flex gap-1">
                     <button onclick="toggleLike('${post.id}')" class="flex-1 py-2 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 text-slate-500 font-medium text-sm btn-bounce group"><i class="${likeIconClass} fa-heart text-lg transition-transform group-hover:scale-125"></i> <span class="${hasLiked ? 'text-blue-600' : ''}">${post.likes || 0}</span></button>
                     <button onclick="toggleCommentSection('${post.id}', '${context}')" class="flex-1 py-2 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 text-slate-500 font-medium text-sm btn-bounce group"><i class="fa-regular fa-comment text-lg transition-transform group-hover:scale-125"></i> <span id="comment-count-${post.id}-${context}" class="comment-count-bubble ${(post.commentCount || 0) > 0 ? 'has-comments' : ''}">${post.commentCount || 0}</span></button>
                     <button onclick="if(window._saveLongPressTriggered){window._saveLongPressTriggered=false;return;}savePost('${post.id}')" onmousedown="startSaveLongPress('${post.id}', event)" onmouseup="cancelSaveLongPress()" onmouseleave="cancelSaveLongPress()" ontouchstart="startSaveLongPress('${post.id}', event)" ontouchend="cancelSaveLongPress()" ontouchcancel="cancelSaveLongPress()" class="flex-1 py-2 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 text-slate-500 font-medium text-sm btn-bounce group"><i class="${saveIconClass} fa-bookmark text-lg transition-transform group-hover:scale-125"></i></button>
@@ -6125,7 +6140,7 @@ ${mediaHtml}
         };
 
         function updatePostInPlace(post) {
-            const contexts = ['feed', 'profile', 'saved', 'collaborate'];
+            const contexts = ['feed', 'profile', 'saved', 'collaborate', 'feedback'];
             contexts.forEach(ctx => {
                 const el = document.getElementById(`post-${post.id}-${ctx}`);
                 if(!el) return;
@@ -7468,9 +7483,9 @@ ${mediaHtml}
                     </div>`;
                 });
                 
-                container.innerHTML += `<div id="floating-typing-indicator" class="hidden flex flex-col justify-start mb-1">
-                    <div class="floating-typing-label text-[9px] text-slate-400 italic px-1 mb-0.5"></div>
-                    <div class="typing-indicator" style="padding:6px 12px;">
+                container.innerHTML += `<div id="floating-typing-indicator" class="hidden flex items-center gap-2 mb-1 px-1">
+                    <div class="floating-typing-label text-[9px] text-slate-400 italic"></div>
+                    <div class="typing-indicator" style="padding:5px 10px;">
                         <div class="typing-dot" style="width:4px;height:4px;"></div>
                         <div class="typing-dot" style="width:4px;height:4px;"></div>
                         <div class="typing-dot" style="width:4px;height:4px;"></div>
@@ -7511,7 +7526,19 @@ ${mediaHtml}
                 if(indicator) {
                     indicator.classList.toggle('hidden', !anyTyping);
                     const labelEl = indicator.querySelector('.floating-typing-label');
-                    if (labelEl && typingLabel) labelEl.textContent = typingLabel;
+                    if (labelEl) {
+                        if (isGroup && typingLabel) {
+                            labelEl.textContent = typingLabel;
+                        } else if (!isGroup && anyTyping) {
+                            labelEl.textContent = 'typing...';
+                        } else {
+                            labelEl.textContent = '';
+                        }
+                    }
+                    if(anyTyping) {
+                        const msgContainer = document.getElementById('floating-messages');
+                        if(msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
+                    }
                 }
             });
         };
