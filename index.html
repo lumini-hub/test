@@ -81,6 +81,28 @@
                         floatUp: {
                             '0%': { transform: 'translateY(0) scale(1)', opacity: '1' },
                             '100%': { transform: 'translateY(-200px) scale(1.5)', opacity: '0' }
+                        },
+                        'blob-morph': {
+                            '0%, 100%': { borderRadius: '60% 40% 30% 70% / 60% 30% 70% 40%' },
+                            '25%': { borderRadius: '30% 60% 70% 40% / 50% 60% 30% 60%' },
+                            '50%': { borderRadius: '50% 60% 30% 60% / 30% 40% 70% 60%' },
+                            '75%': { borderRadius: '60% 40% 60% 30% / 70% 50% 40% 60%' },
+                        },
+                        'float-slow': {
+                            '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+                            '25%': { transform: 'translate(10px, -15px) rotate(5deg)' },
+                            '50%': { transform: 'translate(-5px, -25px) rotate(-3deg)' },
+                            '75%': { transform: 'translate(-15px, -10px) rotate(4deg)' },
+                        },
+                        'float-slow-2': {
+                            '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
+                            '25%': { transform: 'translate(-12px, 10px) rotate(-4deg)' },
+                            '50%': { transform: 'translate(8px, 20px) rotate(6deg)' },
+                            '75%': { transform: 'translate(15px, -8px) rotate(-2deg)' },
+                        },
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: '0.6', transform: 'scale(1)' },
+                            '50%': { opacity: '1', transform: 'scale(1.05)' },
                         }
                     }
                 }
@@ -966,6 +988,35 @@
         html.dark .post-video-controls .pv-play-btn,
         html.dark .post-video-controls .pv-vol-btn,
         html.dark .post-video-controls .pv-fs-btn { color: #e0e7ff; }
+
+        /* Drag & Drop Overlay */
+        .drag-drop-overlay {
+            position: fixed; inset: 0; z-index: 9998;
+            background: rgba(37, 99, 235, 0.08);
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: none;
+            animation: fadeIn 0.2s ease;
+        }
+        .drag-drop-overlay .drag-drop-box {
+            background: white; border: 3px dashed #3b82f6; border-radius: 24px;
+            padding: 48px 64px; text-align: center;
+            box-shadow: 0 20px 60px rgba(37, 99, 235, 0.15);
+            animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        html.dark .drag-drop-overlay .drag-drop-box {
+            background: #111; border-color: #6366f1;
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.2);
+        }
+        .drag-drop-overlay .drag-drop-box i { font-size: 3rem; color: #3b82f6; margin-bottom: 12px; }
+        .drag-drop-overlay .drag-drop-box p { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
+        .drag-drop-overlay .drag-drop-box span { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; display: block; }
+        html.dark .drag-drop-overlay .drag-drop-box p { color: #e2e8f0; }
+        html.dark .drag-drop-overlay { background: rgba(99, 102, 241, 0.06); }
+
+        /* Auth dark mode for new login */
+        html.dark #auth-overlay .bg-white\/60 { background: rgba(10, 10, 10, 0.85) !important; }
+        html.dark #auth-overlay .text-gradient { background: linear-gradient(to right, #c7d2fe, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
 </head>
 <body class="text-slate-800 font-sans antialiased overflow-x-hidden selection:bg-blue-100 selection:text-blue-900">
@@ -1183,26 +1234,110 @@
             <div class="shape-blob blob-1 rounded-full"></div>
             <div class="shape-blob blob-2 rounded-full"></div>
             <div class="relative w-full max-w-5xl h-full md:h-[650px] bg-white/80 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/60 overflow-hidden flex flex-col md:flex-row animate-pop-in">
-                <div class="w-full md:w-1/2 bg-gradient-to-br from-blue-600 to-purple-700 p-8 md:p-12 flex flex-col justify-between relative overflow-hidden text-white group">
-                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                    <div class="relative z-10">
-                        <div class="flex items-center gap-3 mb-8"><img src="https://i.ibb.co/XZVSKkBT/Screenshot-2025-11-10-174930-Photoroom.png" class="w-12 h-12 object-contain drop-shadow-lg group-hover:rotate-12 transition-transform duration-500"><span class="font-heading font-bold text-2xl tracking-tight">Lumini</span></div>
-                        <h1 class="font-heading text-4xl md:text-5xl font-bold leading-tight mb-6 animate-slide-up" style="animation-delay: 0.1s;">Connect. <br> Collaborate. <br> Create.</h1>
-                        <p class="text-blue-100 text-lg font-light mb-8 animate-slide-up" style="animation-delay: 0.2s;">Join the community where developers and creators build the future together.</p>
-                    </div>
-                </div>
-                <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white/60">
-                    <div class="max-w-sm mx-auto w-full animate-slide-up" style="animation-delay: 0.3s;">
-                        <h2 class="font-heading text-2xl font-bold text-slate-900 mb-2">Get Started</h2>
-                        <p class="text-slate-500 mb-8 text-sm">Create an account or sign in.</p>
-                        <div class="space-y-4">
-                            <button onclick="handleGoogleAuth()" class="w-full bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-semibold py-3 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 shadow-sm hover:shadow-md btn-bounce"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"> Continue with Google</button>
-                            <div class="relative flex py-2 items-center"><div class="flex-grow border-t border-slate-200"></div><span class="flex-shrink mx-4 text-slate-400 text-xs font-semibold uppercase">Or with email</span><div class="flex-grow border-t border-slate-200"></div></div>
-                            <input id="auth-email" type="email" placeholder="Email" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300">
-                            <input id="auth-password" type="password" placeholder="Password" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300">
-                            <button onclick="handleEmailAuth()" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-blue-500/50 btn-bounce">Sign In / Sign Up</button>
+                <!-- LEFT: Login UI -->
+                <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white/60 relative overflow-hidden order-2 md:order-1">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+                    <div class="max-w-sm mx-auto w-full">
+                        <div class="flex items-center gap-3 mb-8 animate-slide-up" style="animation-delay: 0.1s;">
+                            <img src="https://i.ibb.co/XZVSKkBT/Screenshot-2025-11-10-174930-Photoroom.png" class="w-11 h-11 object-contain drop-shadow-lg hover:rotate-12 transition-transform duration-500">
+                            <span class="font-heading font-bold text-2xl tracking-tight text-gradient">Lumini</span>
+                        </div>
+                        <h2 class="font-heading text-3xl font-extrabold text-slate-900 mb-1 animate-slide-up" style="animation-delay: 0.15s;">Welcome back</h2>
+                        <p class="text-slate-400 mb-8 text-sm animate-slide-up" style="animation-delay: 0.2s;">Sign in to continue to Lumini</p>
+                        <div class="space-y-4 animate-slide-up" style="animation-delay: 0.25s;">
+                            <button onclick="handleGoogleAuth()" class="w-full bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 shadow-sm hover:shadow-lg btn-bounce group">
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
+                                Continue with Google
+                            </button>
+                            <div class="relative flex py-3 items-center">
+                                <div class="flex-grow border-t border-slate-200"></div>
+                                <span class="flex-shrink mx-4 text-slate-400 text-[10px] font-bold uppercase tracking-widest">Or with email</span>
+                                <div class="flex-grow border-t border-slate-200"></div>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="relative">
+                                    <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
+                                    <input id="auth-email" type="email" placeholder="Email address" autocomplete="email" class="w-full p-3.5 pl-11 bg-slate-50/80 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 text-sm">
+                                </div>
+                                <div class="relative">
+                                    <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
+                                    <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" class="w-full p-3.5 pl-11 bg-slate-50/80 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 text-sm">
+                                </div>
+                            </div>
+                            <button id="auth-login-btn" onclick="handleEmailAuth()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-slate-300/40 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 btn-bounce text-sm">Sign In / Sign Up</button>
                         </div>
                         <p id="auth-error" class="text-red-500 text-xs mt-4 text-center hidden animate-bounce-short"></p>
+                    </div>
+                </div>
+                <!-- RIGHT: GIF Preview -->
+                <div class="w-full md:w-1/2 relative overflow-hidden order-1 md:order-2 min-h-[200px] md:min-h-0" style="background: #0a0f1a;">
+                    <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900"></div>
+                    <div class="absolute inset-0" style="background: radial-gradient(circle at 30% 50%, rgba(99,102,241,0.15), transparent 60%), radial-gradient(circle at 80% 20%, rgba(37,99,235,0.1), transparent 50%);"></div>
+                    <div class="relative z-10 flex flex-col items-center justify-center h-full p-8 md:p-10">
+                        <h1 class="font-heading text-3xl md:text-4xl font-extrabold leading-tight text-center text-white mb-3 animate-slide-up" style="animation-delay: 0.1s; text-shadow: 0 2px 20px rgba(99,102,241,0.3);">
+                            Build your dreams<br><span class="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">with your friends</span>
+                        </h1>
+                        <p class="text-indigo-200/60 text-sm mb-6 text-center animate-slide-up font-medium" style="animation-delay: 0.2s;">Connect, collaborate, and create something amazing together.</p>
+                        <div class="w-full max-w-[420px] overflow-hidden animate-slide-up relative" style="animation-delay: 0.3s;">
+                            <!-- Feature Highlights Carousel -->
+                            <div id="feature-carousel" class="relative w-full" style="min-height: 260px;">
+                                <div class="feature-card active-card" data-index="0" style="position:absolute;inset:0;transition:opacity 0.5s ease,transform 0.5s ease;opacity:1;transform:translateY(0);">
+                                    <div style="background:rgba(255,255,255,0.08);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:32px 28px;text-align:center;">
+                                        <div style="width:56px;height:56px;margin:0 auto 16px;background:linear-gradient(135deg,#6366f1,#3b82f6);border-radius:16px;display:flex;align-items:center;justify-content:center;">
+                                            <i class="fa-solid fa-users text-white text-xl"></i>
+                                        </div>
+                                        <h3 class="text-white font-heading font-bold text-lg mb-2">Collaborate Together</h3>
+                                        <p class="text-indigo-200/60 text-sm leading-relaxed">Work on projects with friends in real-time. Share ideas, assign tasks, and build something amazing.</p>
+                                    </div>
+                                </div>
+                                <div class="feature-card" data-index="1" style="position:absolute;inset:0;transition:opacity 0.5s ease,transform 0.5s ease;opacity:0;transform:translateY(20px);">
+                                    <div style="background:rgba(255,255,255,0.08);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:32px 28px;text-align:center;">
+                                        <div style="width:56px;height:56px;margin:0 auto 16px;background:linear-gradient(135deg,#8b5cf6,#ec4899);border-radius:16px;display:flex;align-items:center;justify-content:center;">
+                                            <i class="fa-solid fa-rocket text-white text-xl"></i>
+                                        </div>
+                                        <h3 class="text-white font-heading font-bold text-lg mb-2">Launch Faster</h3>
+                                        <p class="text-indigo-200/60 text-sm leading-relaxed">Go from idea to launch in record time. Built-in tools to help you ship your projects quickly.</p>
+                                    </div>
+                                </div>
+                                <div class="feature-card" data-index="2" style="position:absolute;inset:0;transition:opacity 0.5s ease,transform 0.5s ease;opacity:0;transform:translateY(20px);">
+                                    <div style="background:rgba(255,255,255,0.08);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:32px 28px;text-align:center;">
+                                        <div style="width:56px;height:56px;margin:0 auto 16px;background:linear-gradient(135deg,#3b82f6,#06b6d4);border-radius:16px;display:flex;align-items:center;justify-content:center;">
+                                            <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                                        </div>
+                                        <h3 class="text-white font-heading font-bold text-lg mb-2">Secure & Private</h3>
+                                        <p class="text-indigo-200/60 text-sm leading-relaxed">Your data stays yours. End-to-end encryption and granular privacy controls keep everything safe.</p>
+                                    </div>
+                                </div>
+                                <!-- Dots -->
+                                <div style="position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);display:flex;gap:8px;">
+                                    <span class="carousel-dot" data-dot="0" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.8);transition:all 0.3s;cursor:pointer;"></span>
+                                    <span class="carousel-dot" data-dot="1" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.25);transition:all 0.3s;cursor:pointer;"></span>
+                                    <span class="carousel-dot" data-dot="2" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.25);transition:all 0.3s;cursor:pointer;"></span>
+                                </div>
+                            </div>
+                            <script>
+                            (function(){
+                                let current=0;const total=3;
+                                const cards=document.querySelectorAll('.feature-card');
+                                const dots=document.querySelectorAll('.carousel-dot');
+                                function show(i){
+                                    cards.forEach((c,idx)=>{c.style.opacity=idx===i?'1':'0';c.style.transform=idx===i?'translateY(0)':'translateY(20px)';});
+                                    dots.forEach((d,idx)=>{d.style.background=idx===i?'rgba(255,255,255,0.8)':'rgba(255,255,255,0.25)';});
+                                    current=i;
+                                }
+                                dots.forEach(d=>d.addEventListener('click',()=>show(parseInt(d.dataset.dot))));
+                                setInterval(()=>show((current+1)%total),4000);
+                            })();
+                            </script>
+                        </div>
+                        <div class="flex items-center gap-3 mt-5 animate-slide-up" style="animation-delay: 0.4s;">
+                            <div class="flex -space-x-2">
+                                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 border-2 border-slate-900 flex items-center justify-center text-white text-[9px] font-bold">T</div>
+                                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-slate-900 flex items-center justify-center text-white text-[9px] font-bold">J</div>
+                                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 border-2 border-slate-900 flex items-center justify-center text-white text-[9px] font-bold">U</div>
+                            </div>
+                            <span class="text-indigo-300/50 text-xs font-medium">Join the community</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1408,7 +1543,7 @@
                                 <div id="profile-cover-grid" class="absolute inset-0 opacity-[0.04]" style="background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 40px 40px;"></div>
                                 <button onclick="router('feed')" class="absolute top-5 left-5 bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-xl backdrop-blur-md transition-all text-sm font-bold btn-bounce border border-white/10 z-10"><i class="fa-solid fa-arrow-left mr-2"></i> Back</button>
                                 <!-- Cover photo upload button (own profile only) -->
-                                <button id="cover-upload-btn" onclick="document.getElementById('cover-photo-input').click()" class="hidden absolute top-5 right-5 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl backdrop-blur-md transition-all text-sm font-bold btn-bounce border border-white/10 z-10"><i class="fa-solid fa-camera mr-1.5"></i> Cover Photo</button>
+                                <button id="cover-upload-btn" onclick="triggerCoverUpload()" class="hidden absolute top-5 right-5 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl backdrop-blur-md transition-all text-sm font-bold btn-bounce border border-white/10 z-10"><i class="fa-solid fa-camera mr-1.5"></i> Cover Photo</button>
                                 <input type="file" id="cover-photo-input" class="hidden" accept="image/*" onchange="handleCoverPhotoChange(this)">
                                 <!-- Floating badge -->
                                 <div class="absolute bottom-6 right-6 bg-white/10 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 text-white/70 text-xs font-medium z-10">
@@ -1604,7 +1739,7 @@
                                         <button type="button" onclick="document.getElementById('chat-file-input').click()" title="Attachment" class="disabled-chat-btn"><i class="fa-solid fa-paperclip text-blue-500"></i></button>
                                         <button type="button" id="voice-record-btn" onclick="toggleVoiceRecording()" title="Voice Message" class="disabled-chat-btn"><i class="fa-solid fa-microphone text-red-400"></i></button>
                                     </div>
-                                    <input id="message-input" type="text" placeholder="Type a message..." class="flex-1 bg-slate-100 border border-transparent focus:bg-white focus:border-slate-200 rounded-full px-5 py-3 outline-none transition-all duration-300 text-sm" disabled oninput="handleTypingIndicator()">
+                                    <input id="message-input" type="text" placeholder="Type a message..." class="flex-1 bg-slate-100 border border-transparent focus:bg-white focus:border-slate-200 rounded-full px-5 py-3 outline-none transition-all duration-300 text-sm" disabled oninput="handleTypingIndicator()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="lumini-chat-msg-input">
                                     <button id="message-send-btn" type="submit" class="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-slate-700 transition-all duration-200 disabled:opacity-30 btn-bounce flex-shrink-0" disabled><i id="msg-send-icon" class="fa-solid fa-arrow-up text-sm"></i></button>
                                 </form>
                             </div>
@@ -1676,7 +1811,7 @@
                 <div id="floating-conversation" class="hidden flex-col bg-white min-h-0 h-full overflow-hidden" style="display: none; flex: 1;">
                     <div id="floating-messages" class="flex-1 min-h-0 overflow-y-auto p-3 space-y-2 custom-scrollbar text-xs break-words" style="scroll-behavior: smooth;"></div>
                     <form onsubmit="sendFloatingMessage(event)" class="p-2 border-t border-slate-100 bg-slate-50/80 flex gap-2 items-center shrink-0 sticky bottom-0">
-                        <input id="floating-input" type="text" placeholder="Type a message..." class="flex-1 min-w-0 bg-white border border-slate-200 rounded-full px-3 py-2 text-xs outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200/50 transition-all duration-300" style="writing-mode: horizontal-tb;" oninput="handleFloatingTyping()">
+                        <input id="floating-input" type="text" placeholder="Type a message..." class="flex-1 min-w-0 bg-white border border-slate-200 rounded-full px-3 py-2 text-xs outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200/50 transition-all duration-300" style="writing-mode: horizontal-tb;" oninput="handleFloatingTyping()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="lumini-float-msg">
                         <button type="submit" class="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center hover:bg-slate-700 transition-all duration-200 flex-shrink-0"><i class="fa-solid fa-arrow-up text-xs"></i></button>
                     </form>
                 </div>
@@ -2179,13 +2314,13 @@
                 </div>
                 <div class="p-6 space-y-4">
                     <div class="flex justify-center mb-4">
-                        <div class="relative group cursor-pointer" onclick="document.getElementById('pfp-upload-modal').click()">
+                        <div class="relative group cursor-pointer" onclick="triggerPfpUpload()">
                             <img id="edit-modal-avatar" src="https://placehold.co/200x200" class="w-24 h-24 rounded-full border-4 border-slate-100 object-cover group-hover:brightness-75 transition-all">
                             <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm">
                                 <i class="fa-solid fa-camera text-white text-2xl"></i>
                             </div>
-                            <input type="file" id="pfp-upload-modal" class="hidden" accept="image/*" onchange="handlePfpChange(this)">
                         </div>
+                        <input type="file" id="pfp-upload-modal" class="hidden" accept="image/*" onchange="handlePfpChange(this)">
                     </div>
                     <div class="text-center text-xs text-slate-400 mb-4">Click picture to change</div>
 
@@ -2418,9 +2553,17 @@
             "tenzingjangseliscool@gmail.com"     
         ];
         
-        const checkIsAdmin = (email) => {
+        const checkIsAdmin = (email, uid) => {
             if(!email) return false;
-            return ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase());
+            // Check hardcoded admin emails
+            if (ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase())) return true;
+            // Auto-detect uid from current user if not provided
+            const resolvedUid = uid || (window.currentUser && window.currentUser.uid);
+            if (resolvedUid) {
+                const cachedUser = allUsersCache.find(u => u.id === resolvedUid);
+                if (cachedUser && cachedUser.isAdmin) return true;
+            }
+            return false;
         };
 
         // State
@@ -2841,8 +2984,10 @@
                     return;
                 }
 
-                if (checkIsAdmin(user.email)) {
-                     if (userDirSnap.exists()) {
+                const isAdminFromFirestore = userDirSnap.exists() && userDirSnap.data().isAdmin;
+                const isAdminFromEmail = ADMIN_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase());
+                if (isAdminFromEmail || isAdminFromFirestore) {
+                     if (userDirSnap.exists() && !userDirSnap.data().isAdmin) {
                          await updateDoc(userDirRef, { isAdmin: true });
                      }
                      const adminBtn = document.getElementById('admin-add-highlight-btn');
@@ -3361,7 +3506,7 @@
             unsubscribePosts = onSnapshot(q, (snap) => {
                 const posts = [];
                 snap.forEach(d => posts.push({id: d.id, ...d.data()}));
-                posts.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                posts.sort((a,b) => (b.createdAt?.seconds ?? Number.MAX_SAFE_INTEGER) - (a.createdAt?.seconds ?? Number.MAX_SAFE_INTEGER));
                 allPostsCache = posts;
                 const changes = snap.docChanges();
                 const hasStructuralChange = isFirstPostLoad || changes.some(c => c.type === 'added' || c.type === 'removed');
@@ -3372,12 +3517,23 @@
                     if(!document.getElementById('view-collaborate').classList.contains('hidden')) renderCollaborate();
                     if(!document.getElementById('view-feedback').classList.contains('hidden')) renderFeedback();
                 } else {
+                    let sortOrderChanged = false;
                     changes.forEach(c => {
                         if(c.type === 'modified') {
                             const p = {id: c.doc.id, ...c.doc.data()};
+                            const oldPost = allPostsCache.find(op => op.id === p.id);
+                            if(oldPost && !oldPost.createdAt && p.createdAt) {
+                                sortOrderChanged = true;
+                            }
                             updatePostInPlace(p);
                         }
                     });
+                    if(sortOrderChanged) {
+                        allPostsCache.sort((a,b) => (b.createdAt?.seconds ?? Number.MAX_SAFE_INTEGER) - (a.createdAt?.seconds ?? Number.MAX_SAFE_INTEGER));
+                        if(!document.getElementById('view-feed').classList.contains('hidden')) renderFeed(allPostsCache);
+                        if(!document.getElementById('view-collaborate').classList.contains('hidden')) renderCollaborate();
+                        if(!document.getElementById('view-feedback').classList.contains('hidden')) renderFeedback();
+                    }
                 }
             });
 
@@ -3712,7 +3868,11 @@
                 const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
                 const otherUser = allUsersCache.find(u => u.id === otherUid) || { name: "User", photoURL: "https://placehold.co/100x100" };
                 
-                const isOnline = otherUser.isOnline === true;
+                let isOnline = otherUser.isOnline === true;
+                if (isOnline && otherUser.lastSeen) {
+                    const lastSeenMs = otherUser.lastSeen.toMillis ? otherUser.lastSeen.toMillis() : (otherUser.lastSeen.seconds ? otherUser.lastSeen.seconds * 1000 : 0);
+                    if (lastSeenMs > 0 && (Date.now() - lastSeenMs) > 2 * 60 * 1000) isOnline = false;
+                }
                 const lastSeenText = !isOnline && otherUser.lastSeen ? getLastSeenText(otherUser.lastSeen) : '';
                 
                 return `<div onclick="openChat('${c.id}', '${otherUser.name}')" class="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 ${c.id === currentChatId ? 'bg-white shadow-md ring-1 ring-slate-100 scale-[1.02]' : 'hover:bg-white hover:shadow-sm'} ${isUnread ? 'bg-blue-50/50' : ''}">
@@ -3751,7 +3911,12 @@
                 const chatParts = chatId.split('_');
                 const chatOtherUid = chatParts[0] === currentUser.uid ? chatParts[1] : chatParts[0];
                 const chatOtherUser = allUsersCache.find(u => u.id === chatOtherUid);
-                if (chatOtherUser && chatOtherUser.isOnline) {
+                let chatOtherOnline = chatOtherUser && chatOtherUser.isOnline === true;
+                if (chatOtherOnline && chatOtherUser.lastSeen) {
+                    const lsMs = chatOtherUser.lastSeen.toMillis ? chatOtherUser.lastSeen.toMillis() : (chatOtherUser.lastSeen.seconds ? chatOtherUser.lastSeen.seconds * 1000 : 0);
+                    if (lsMs > 0 && (Date.now() - lsMs) > 2 * 60 * 1000) chatOtherOnline = false;
+                }
+                if (chatOtherOnline) {
                     statusEl.innerHTML = '<i class="fa-solid fa-circle text-green-500 mr-1" style="font-size:6px;"></i>Online';
                     statusEl.classList.remove('hidden');
                     statusEl.className = 'text-[10px] text-green-500 font-semibold';
@@ -4598,8 +4763,13 @@ ${mediaHtml}
             });
 
             presenceInterval = setInterval(() => {
-                if (currentUser) {
-                    setDoc(userRef, { isOnline: true, lastSeen: serverTimestamp() }, { merge: true });
+                if (currentUser && document.visibilityState === 'visible') {
+                    const inactiveMs = Date.now() - _lastActivityTime;
+                    if (inactiveMs < 5 * 60 * 1000) {
+                        setDoc(userRef, { isOnline: true, lastSeen: serverTimestamp() }, { merge: true });
+                    } else {
+                        setDoc(userRef, { isOnline: false, lastSeen: serverTimestamp() }, { merge: true }).catch(() => {});
+                    }
                 }
             }, 30000);
 
@@ -5420,14 +5590,24 @@ ${mediaHtml}
         window.handleEmailAuth = async () => {
              const email = document.getElementById('auth-email').value;
              const pass = document.getElementById('auth-password').value;
+             const btn = document.getElementById('auth-login-btn');
+             const originalText = btn.innerText;
+             btn.disabled = true;
+             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Signing in...';
+             btn.classList.add('opacity-75');
+             document.getElementById('auth-error').classList.add('hidden');
              try {
                  await signInWithEmailAndPassword(auth, email, pass);
              } catch(e) {
+                 btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Creating account...';
                  try {
                      await createUserWithEmailAndPassword(auth, email, pass);
                  } catch(err) {
                      document.getElementById('auth-error').innerText = err.message;
                      document.getElementById('auth-error').classList.remove('hidden');
+                     btn.disabled = false;
+                     btn.innerText = originalText;
+                     btn.classList.remove('opacity-75');
                  }
              }
         };
@@ -7042,12 +7222,21 @@ ${mediaHtml}
              
              if (checkIsAdmin(currentUser.email) && uid !== currentUser.uid) {
                  const isBanned = user.isBanned || false;
+                 const isTargetAdmin = user.isAdmin || false;
+                 const currentIsSuperAdmin = isSuperAdmin(currentUser.email);
                  let adminControls = document.getElementById('admin-controls-container');
                  adminControls.innerHTML = `
-                     <div class="flex items-center">
+                     <div class="flex items-center gap-2 flex-wrap">
                          <button onclick="toggleBan('${uid}', ${isBanned})" class="bg-red-100 text-red-600 px-4 py-2 rounded-lg font-bold text-xs hover:bg-red-200 transition-colors btn-bounce whitespace-nowrap">
                              ${isBanned ? 'Unban User' : 'Ban User'}
                          </button>
+                         <button onclick="deleteUserAccount('${uid}')" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-red-700 transition-colors btn-bounce whitespace-nowrap">
+                             <i class="fa-solid fa-trash mr-1"></i> Delete Account
+                         </button>
+                         ${currentIsSuperAdmin ? `
+                         <button onclick="promoteToAdmin('${uid}')" class="${isTargetAdmin ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'} px-4 py-2 rounded-lg font-bold text-xs transition-colors btn-bounce whitespace-nowrap">
+                             <i class="fa-solid fa-${isTargetAdmin ? 'user-minus' : 'user-shield'} mr-1"></i> ${isTargetAdmin ? 'Remove Admin' : 'Make Admin'}
+                         </button>` : ''}
                      </div>
                  `;
              } else {
@@ -7131,33 +7320,103 @@ ${mediaHtml}
              viewMyProfile();
         };
 
-        window.handleCoverPhotoChange = (input) => {
+        function compressImage(file, maxWidth, quality) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width, h = img.height;
+                        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        window.triggerPfpUpload = () => {
+            const input = document.getElementById('pfp-upload-modal');
+            input.value = null;
+            input.click();
+        };
+
+        window.triggerCoverUpload = () => {
+            const input = document.getElementById('cover-photo-input');
+            input.value = null;
+            input.click();
+        };
+
+        window.handleCoverPhotoChange = async (input) => {
              if(input.files && input.files[0]) {
-                 const reader = new FileReader();
-                 reader.onload = async (e) => {
-                     const dataUrl = e.target.result;
+                 const file = input.files[0];
+                 try {
+                     const dataUrl = await compressImage(file, 1200, 0.7);
                      await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'main'), {
                          coverPhoto: dataUrl
                      }, { merge: true });
                      const coverImg = document.getElementById('profile-cover-img');
                      coverImg.src = dataUrl;
                      coverImg.classList.remove('hidden');
-                 };
-                 reader.readAsDataURL(input.files[0]);
+                     showToast('Cover photo updated!');
+                 } catch(err) {
+                     console.error('Cover photo upload error:', err);
+                     showToast('Failed to update cover photo.');
+                 }
              }
+             input.value = null;
         };
 
-        window.handlePfpChange = (input) => {
+        window.handlePfpChange = async (input) => {
              if(input.files && input.files[0]) {
-                 const reader = new FileReader();
-                 reader.onload = async (e) => {
-                     const dataUrl = e.target.result;
-                     await updateProfile(currentUser, { photoURL: dataUrl });
-                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users_directory', currentUser.uid), { photoURL: dataUrl }, { merge: true });
-                     document.getElementById('edit-modal-avatar').src = dataUrl;
-                 };
-                 reader.readAsDataURL(input.files[0]);
+                 const file = input.files[0];
+                 try {
+                     let dataUrl = await compressImage(file, 300, 0.6);
+                     let finalUrl = dataUrl;
+
+                     // Try uploading to Cloudinary for a persistent URL that others can see
+                     if (cloudinaryConfig) {
+                         const result = await uploadToCloudinary(file, 'lumini_avatars');
+                         if (result) {
+                             finalUrl = result.url;
+                         }
+                     }
+
+                     // Update Firebase Auth profile so currentUser.photoURL is always current
+                     await updateProfile(currentUser, { photoURL: finalUrl });
+
+                     // Update Firestore user directory (what other users see)
+                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users_directory', currentUser.uid), { photoURL: finalUrl }, { merge: true });
+                     // Update private profile doc
+                     await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'main'), { photoURL: finalUrl }, { merge: true });
+
+                     // Update all local UI elements immediately
+                     document.getElementById('edit-modal-avatar').src = finalUrl;
+                     document.getElementById('nav-avatar').src = finalUrl;
+                     document.getElementById('sidebar-mini-avatar').src = finalUrl;
+                     document.getElementById('menu-avatar-small').src = finalUrl;
+                     document.getElementById('composer-avatar').src = finalUrl;
+                     document.getElementById('modal-avatar').src = finalUrl;
+                     document.getElementById('story-my-avatar').src = finalUrl;
+                     const profileAvatar = document.getElementById('profile-page-avatar');
+                     if (profileAvatar) profileAvatar.src = finalUrl;
+
+                     // Update cached user in allUsersCache so re-renders use the new photo
+                     const cachedMe = allUsersCache.find(u => u.id === currentUser.uid);
+                     if (cachedMe) cachedMe.photoURL = finalUrl;
+
+                     showToast('Profile picture updated!');
+                 } catch(err) {
+                     console.error('Profile pic upload error:', err);
+                     showToast('Failed to update profile picture.');
+                 }
              }
+             input.value = null;
         };
 
         window.switchProfileTab = (tab) => {
@@ -7386,7 +7645,11 @@ ${mediaHtml}
                 const parts = c.id.split('_');
                 const otherUid = parts[0] === currentUser.uid ? parts[1] : parts[0];
                 const otherUser = allUsersCache.find(u => u.id === otherUid) || { name: "User", photoURL: "https://placehold.co/100x100" };
-                const isOnline = otherUser.isOnline === true;
+                let isOnline = otherUser.isOnline === true;
+                if (isOnline && otherUser.lastSeen) {
+                    const lsMs2 = otherUser.lastSeen.toMillis ? otherUser.lastSeen.toMillis() : (otherUser.lastSeen.seconds ? otherUser.lastSeen.seconds * 1000 : 0);
+                    if (lsMs2 > 0 && (Date.now() - lsMs2) > 2 * 60 * 1000) isOnline = false;
+                }
                 
                 return `
                 <div onclick="openFloatingChat('${c.id}', '${otherUser.name}')" class="flex items-center gap-3 p-2.5 hover:bg-white rounded-xl cursor-pointer transition-all duration-200 mb-0.5 ${isUnread ? 'bg-blue-50/60' : ''}" style="animation: msgMorphIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; animation-delay: ${i * 0.05}s; writing-mode: horizontal-tb;">
@@ -7664,6 +7927,186 @@ ${mediaHtml}
         if(floatingWidget) {
              makeDraggable(floatingWidget);
         }
+
+        // ===== DRAG & DROP FILE UPLOAD SUPPORT =====
+        (function() {
+            let dragOverlay = null;
+            let dragCounter = 0;
+
+            function createDragOverlay() {
+                if (dragOverlay) return;
+                dragOverlay = document.createElement('div');
+                dragOverlay.className = 'drag-drop-overlay';
+                dragOverlay.innerHTML = `
+                    <div class="drag-drop-box">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <p>Drop files here</p>
+                        <span>Images, videos, or documents</span>
+                    </div>
+                `;
+                document.body.appendChild(dragOverlay);
+            }
+
+            function removeDragOverlay() {
+                if (dragOverlay) {
+                    dragOverlay.remove();
+                    dragOverlay = null;
+                }
+            }
+
+            document.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                dragCounter++;
+                if (dragCounter === 1) createDragOverlay();
+            });
+
+            document.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dragCounter--;
+                if (dragCounter <= 0) { dragCounter = 0; removeDragOverlay(); }
+            });
+
+            document.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            document.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dragCounter = 0;
+                removeDragOverlay();
+
+                const files = e.dataTransfer.files;
+                if (!files || files.length === 0) return;
+                const file = files[0];
+
+                const postModal = document.getElementById('post-modal');
+                const storyModal = document.getElementById('story-upload-modal');
+                const chatCol = document.getElementById('msg-chat-col');
+                const editProfileModal = document.getElementById('edit-profile-modal');
+
+                if (postModal && !postModal.classList.contains('hidden')) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    const fileInput = document.getElementById('file-input');
+                    fileInput.files = dt.files;
+                    if (typeof handleFileSelect === 'function') handleFileSelect(fileInput);
+                } else if (storyModal && !storyModal.classList.contains('hidden')) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    const storyInput = document.getElementById('story-file-input');
+                    storyInput.files = dt.files;
+                    if (typeof handleStoryFileSelect === 'function') handleStoryFileSelect(storyInput);
+                } else if (chatCol && !chatCol.classList.contains('hidden') && currentChatId) {
+                    const isImage = file.type.startsWith('image/');
+                    const isVideo = file.type.startsWith('video/');
+                    if (isImage || isVideo) {
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        const chatImgInput = document.getElementById('chat-img-input');
+                        chatImgInput.files = dt.files;
+                        if (typeof handleChatMediaSelect === 'function') handleChatMediaSelect(chatImgInput);
+                    } else {
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        const chatFileInput = document.getElementById('chat-file-input');
+                        chatFileInput.files = dt.files;
+                        if (typeof handleChatFileSelect === 'function') handleChatFileSelect(chatFileInput);
+                    }
+                } else if (editProfileModal && !editProfileModal.classList.contains('hidden') && file.type.startsWith('image/')) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    const pfpInput = document.getElementById('pfp-upload-modal');
+                    pfpInput.files = dt.files;
+                    if (typeof handlePfpChange === 'function') handlePfpChange(pfpInput);
+                } else {
+                    showToast('Open a post, chat, or story to drop files into.');
+                }
+            });
+        })();
+
+        // ===== SUPER ADMIN & ADMIN ACCOUNT MANAGEMENT =====
+        const SUPER_ADMIN_EMAIL = 'tenzing.jangseld2023@academy.bt';
+
+        const isSuperAdmin = (email) => {
+            if (!email) return false;
+            return email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+        };
+
+        window.deleteUserAccount = async (uid) => {
+            if (!currentUser || !checkIsAdmin(currentUser.email)) return;
+            if (uid === currentUser.uid) { showToast('You cannot delete your own account.'); return; }
+            const targetUser = allUsersCache.find(u => u.id === uid);
+            const targetName = targetUser ? targetUser.name : 'this user';
+
+            const confirmed = await showCustomDialog({
+                type: 'confirm',
+                title: 'Delete Account',
+                message: `Are you sure you want to permanently delete ${targetName}'s account? This will remove them completely from the platform. This action cannot be undone.`,
+                confirmText: 'Delete Permanently',
+                cancelText: 'Cancel'
+            });
+            if (!confirmed) return;
+
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users_directory', uid));
+
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'users', uid, 'profile', 'main'));
+                } catch(e) { console.warn('Could not delete profile doc:', e); }
+
+                try {
+                    const notifSnap = await getDocs(collection(db, 'artifacts', appId, 'users', uid, 'notifications'));
+                    const batch = writeBatch(db);
+                    notifSnap.forEach(d => batch.delete(d.ref));
+                    await batch.commit();
+                } catch(e) { console.warn('Could not delete notifications:', e); }
+
+                const idx = allUsersCache.findIndex(u => u.id === uid);
+                if (idx !== -1) allUsersCache.splice(idx, 1);
+
+                showToast(`${targetName}'s account has been permanently removed.`);
+                router('network');
+            } catch (e) {
+                console.error('Error deleting account:', e);
+                showToast('Failed to delete account.');
+            }
+        };
+
+        window.promoteToAdmin = async (uid) => {
+            if (!currentUser || !isSuperAdmin(currentUser.email)) {
+                showToast('Only the super admin can promote users.');
+                return;
+            }
+            if (uid === currentUser.uid) { showToast('You are already the super admin.'); return; }
+
+            const targetUser = allUsersCache.find(u => u.id === uid);
+            const targetName = targetUser ? targetUser.name : 'this user';
+            const isCurrentlyAdmin = targetUser && targetUser.isAdmin;
+
+            const action = isCurrentlyAdmin ? 'remove admin privileges from' : 'make';
+            const confirmed = await showCustomDialog({
+                type: 'confirm',
+                title: isCurrentlyAdmin ? 'Remove Admin' : 'Promote to Admin',
+                message: `Are you sure you want to ${action} ${targetName} ${isCurrentlyAdmin ? '' : 'an admin'}? ${isCurrentlyAdmin ? 'They will lose admin access.' : 'They will gain admin privileges.'}`,
+                confirmText: isCurrentlyAdmin ? 'Remove Admin' : 'Make Admin',
+                cancelText: 'Cancel'
+            });
+            if (!confirmed) return;
+
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users_directory', uid), {
+                    isAdmin: !isCurrentlyAdmin
+                });
+                const cached = allUsersCache.find(u => u.id === uid);
+                if (cached) cached.isAdmin = !isCurrentlyAdmin;
+
+                showToast(isCurrentlyAdmin ? `${targetName} is no longer an admin.` : `${targetName} is now an admin!`);
+                viewProfile(uid);
+            } catch (e) {
+                console.error('Error updating admin status:', e);
+                showToast('Failed to update admin status.');
+            }
+        };
 
     </script>
 <!-- Image Lightbox Overlay -->
