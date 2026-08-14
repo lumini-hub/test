@@ -780,7 +780,7 @@
     </div>
 
     <!-- API Key Modal -->
-    <div id="api-key-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[80] hidden flex items-center justify-center transition-all duration-300 opacity-0">
+    <div id="api-key-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[95] hidden flex items-center justify-center transition-all duration-300 opacity-0">
         <div class="glass-panel rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform scale-95 transition-all duration-300" id="api-key-modal-content">
             <div class="mb-6">
                 <div class="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center mb-4 text-indigo-400">
@@ -811,7 +811,11 @@
                         <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style="background:var(--bg-input);color:var(--text-muted);border:1px solid var(--border-color)">Optional</span>
                     </label>
                     <input type="password" id="settings-yt-key-input" placeholder="AIza..." class="w-full p-3.5 glass-input rounded-xl focus:outline-none font-mono text-sm">
-                    <p class="text-[11px] mt-1.5" style="color:var(--text-muted)">Unlocks live video search in the Study Coach. Get a free key from Google Cloud → "YouTube Data API v3". Without it, the coach still shows AI-recommended videos.</p>
+                    <p class="text-[11px] mt-1.5" style="color:var(--text-muted)">Unlocks live in-app video search in the Study Coach. Without it, videos open on YouTube instead.</p>
+                    <a href="https://www.youtube.com/watch?v=EPeDTRNKAVo" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold py-1.5 px-3 rounded-lg transition" style="background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.25);color:#f87171">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 00-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 00.5 6.2 31 31 0 000 12a31 31 0 00.5 5.8 3 3 0 002.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 002.1-2.1A31 31 0 0024 12a31 31 0 00-.5-5.8zM9.5 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>
+                        Watch: How to get a free YouTube API key
+                    </a>
                 </div>
             </div>
             <div class="flex justify-end gap-3 mt-4">
@@ -7606,4 +7610,3 @@ ${context || '(No specific exams selected — guide them based on whatever they 
     </script>
 </body>
 </html>
-
