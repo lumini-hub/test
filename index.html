@@ -2525,10 +2525,10 @@ If 'code': { "text": "...", "language": "python", "points": 10 }
 Only return the JSON object, no other text.`;
             try {
                 const apiKey = await getGroqApiKey(); if(!apiKey || apiKey === initialKey) throw new Error("Missing API Key");
-                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify({ model: "openai/gpt-oss-120b", messages: [{ role: "system", content: "You are a precise exam question generator. Every question you create must be factually accurate, unique, and have a verified correct answer. Never repeat questions. Always double-check that your marked answer is actually correct." }, { role: "user", content: prompt }], response_format: { type: "json_object" }, temperature: 1.0, top_p: 0.95 }) });
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify({ model: "openai/gpt-oss-120b", messages: [{ role: "system", content: "You are a precise exam question generator. Every question you create must be factually accurate, unique, and have a verified correct answer. Never repeat questions. Always double-check that your marked answer is actually correct." }, { role: "user", content: prompt }], response_format: { type: "json_object" }, reasoning_effort: "low", max_tokens: 4000, temperature: 1.0, top_p: 0.95 }) });
                 if (!response.ok) throw new Error("API Error");
                 const data = await response.json(); const text = data.choices?.[0]?.message?.content;
-                if (text) { const qd = JSON.parse(text); _aiGeneratedCache.add(qd.text?.substring(0,120) || ''); addQuestion(type, { ...qd, manualGrading: false }); closeAIGeneratorModal(); showToast("Question generated!"); const c = document.getElementById('questions-container'); setTimeout(() => c.lastElementChild?.scrollIntoView({behavior:'smooth'}), 100); }
+                if (text) { const qd = _parseAIJson(text); _aiGeneratedCache.add(qd.text?.substring(0,120) || ''); addQuestion(type, { ...qd, manualGrading: false }); closeAIGeneratorModal(); showToast("Question generated!"); const c = document.getElementById('questions-container'); setTimeout(() => c.lastElementChild?.scrollIntoView({behavior:'smooth'}), 100); }
                 else throw new Error("Empty response");
             } catch (error) { showToast(error.message === "Missing API Key" ? "Configure API Key in settings." : "Failed to generate.", 'error'); }
             finally { btn.innerHTML = origBtn; btn.disabled = false; }
@@ -2602,11 +2602,11 @@ Text (first 3000 chars):
 
             const classifyResp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({ model: "openai/gpt-oss-120b", messages: [{ role: "user", content: classifyPrompt }], response_format: { type: "json_object" }, temperature: 0.1 })
+                body: JSON.stringify({ model: "openai/gpt-oss-120b", messages: [{ role: "user", content: classifyPrompt }], response_format: { type: "json_object" }, reasoning_effort: "low", max_tokens: 1000, temperature: 0.1 })
             });
             if (!classifyResp.ok) throw new Error("AI Classification Failed");
             const classifyData = await classifyResp.json();
-            const classification = JSON.parse(classifyData.choices?.[0]?.message?.content || '{"type":"notes"}');
+            let classification; try { classification = _parseAIJson(classifyData.choices?.[0]?.message?.content || ''); } catch(e) { classification = { type: 'notes' }; }
             const isQuestionPaper = classification.type === 'questions';
 
             showToast(isQuestionPaper ? "Detected question paper — extracting questions..." : "Detected study notes — generating questions...", 'info');
@@ -2670,25 +2670,52 @@ Include only the fields relevant to each question type. For fill-blank, text MUS
             const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
                 body: JSON.stringify({ model: "openai/gpt-oss-120b", messages: [
-                    { role: "system", content: "You are a precise exam question extractor and generator. Every answer you provide must be factually correct. Always verify your answers." },
+                    { role: "system", content: "You are a precise exam question extractor and generator. Every answer you provide must be factually correct. Always verify your answers. Output valid JSON only, no markdown." },
                     { role: "user", content: prompt }
-                ], response_format: { type: "json_object" }, temperature: isQuestionPaper ? 0.1 : 0.7 })
+                ], response_format: { type: "json_object" }, reasoning_effort: "low", max_tokens: 16000, temperature: isQuestionPaper ? 0.1 : 0.7 })
             });
             if (!response.ok) throw new Error("AI Processing Failed");
             const data = await response.json();
             const jsonText = data.choices?.[0]?.message?.content;
+            const finishReason = data.choices?.[0]?.finish_reason;
             if (jsonText) {
-                const result = JSON.parse(jsonText);
-                if (result.questions && Array.isArray(result.questions)) {
+                let result;
+                try { result = _parseAIJson(jsonText); }
+                catch (e) {
+                    // Truncated JSON — try to salvage complete question objects
+                    result = { questions: _salvageQuestions(jsonText) };
+                    if (!result.questions.length) throw new Error(finishReason === 'length' ? 'Document too long — response was cut off. Try a shorter document or fewer pages.' : 'Could not parse AI response.');
+                }
+                if (result.questions && Array.isArray(result.questions) && result.questions.length) {
                     let count = 0;
                     result.questions.forEach(q => {
+                        if (!q || !q.type) return;
                         const validTypes = ['mcq','true-false','short','fill-blank','numeric','long','multiple-response','matching','ordering','code'];
                         if (validTypes.includes(q.type)) { addQuestion(q.type, {...q, manualGrading: false}); count++; }
                         else { addQuestion('short', {...q, type:'short', manualGrading: false}); count++; }
                     });
-                    showToast(`${isQuestionPaper ? 'Extracted' : 'Generated'} ${count} questions!`);
+                    if (count === 0) throw new Error("No valid questions found in the document.");
+                    showToast(`${isQuestionPaper ? 'Extracted' : 'Generated'} ${count} questions!${finishReason === 'length' ? ' (some may have been cut off)' : ''}`);
                 } else throw new Error("No valid questions.");
             } else throw new Error("Empty AI response.");
+        }
+
+        // Salvage complete question objects from truncated JSON (best-effort recovery)
+        function _salvageQuestions(raw) {
+            const out = [];
+            const start = raw.indexOf('"questions"');
+            if (start === -1) return out;
+            let depth = 0, inStr = false, esc = false, objStart = -1;
+            for (let i = raw.indexOf('[', start); i >= 0 && i < raw.length; i++) {
+                const ch = raw[i];
+                if (esc) { esc = false; continue; }
+                if (ch === '\\') { esc = true; continue; }
+                if (ch === '"') inStr = !inStr;
+                if (inStr) continue;
+                if (ch === '{') { if (depth === 0) objStart = i; depth++; }
+                else if (ch === '}') { depth--; if (depth === 0 && objStart !== -1) { try { out.push(JSON.parse(raw.slice(objStart, i + 1))); } catch(e){} objStart = -1; } }
+            }
+            return out;
         }
 
         // ---- UI NAVIGATION ----
@@ -4152,11 +4179,11 @@ Include only the fields relevant to each question type. For fill-blank, text MUS
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                    body: JSON.stringify({ model: "openai/gpt-oss-120b", messages, response_format: { type: 'json_object' }, temperature: 0.6 })
+                    body: JSON.stringify({ model: "openai/gpt-oss-120b", messages, response_format: { type: 'json_object' }, reasoning_effort: "low", max_tokens: 6000, temperature: 0.6 })
                 });
                 if (!response.ok) throw new Error(`API error ${response.status}`);
                 const data = await response.json();
-                const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+                const parsed = _parseAIJson(data.choices?.[0]?.message?.content || '');
 
                 typing.remove();
 
@@ -5313,6 +5340,27 @@ RULES:
         }
 
         // ---- Modal open / generate ----
+        // Robustly extract JSON from an AI response. Reasoning models (gpt-oss) sometimes wrap
+        // JSON in markdown fences, prepend reasoning text, or return it with trailing content.
+        // This strips fences and isolates the outermost {...} object before parsing.
+        function _parseAIJson(raw) {
+            if (!raw || typeof raw !== 'string') throw new Error('Empty AI response');
+            let s = raw.trim();
+            // Strip markdown code fences
+            s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+            // Fast path
+            try { return JSON.parse(s); } catch (e) {}
+            // Isolate the outermost JSON object (first { to last })
+            const first = s.indexOf('{');
+            const last = s.lastIndexOf('}');
+            if (first !== -1 && last !== -1 && last > first) {
+                const candidate = s.slice(first, last + 1);
+                try { return JSON.parse(candidate); } catch (e) {}
+            }
+            // Last resort: throw with a snippet for debugging
+            throw new Error('Could not parse AI JSON. Response may have been truncated.');
+        }
+
         async function generateStudyMaterials(forceRegenerate = false) {
             if (_selectedSubmissions.size === 0) { showToast("Pick at least one exam first.", 'error'); return; }
             // Collect mistakes with source references
@@ -5467,6 +5515,8 @@ Requirements:
                             { role: "user", content: prompt }
                         ],
                         response_format: { type: "json_object" },
+                        reasoning_effort: "low",
+                        max_tokens: 8000,
                         temperature: 0.7
                     })
                 });
@@ -5474,7 +5524,7 @@ Requirements:
                 const data = await response.json();
                 const aiContent = data.choices?.[0]?.message?.content;
                 if (!aiContent) throw new Error("Empty AI response");
-                const parsed = JSON.parse(aiContent);
+                const parsed = _parseAIJson(aiContent);
                 if (!parsed.flashcards || !Array.isArray(parsed.flashcards)) throw new Error("Invalid response structure");
                 // Cache in memory and persist to Firestore so they aren't regenerated next time
                 _studyCoachCache[cacheKey] = parsed;
@@ -7110,11 +7160,11 @@ All questions must be short-answer style (the student types a response). Make th
                 const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                    body: JSON.stringify({ model: "openai/gpt-oss-120b", messages: [{ role: 'system', content: 'You generate practice questions in valid JSON only.' }, { role: 'user', content: prompt }], response_format: { type: 'json_object' }, temperature: 0.8 })
+                    body: JSON.stringify({ model: "openai/gpt-oss-120b", messages: [{ role: 'system', content: 'You generate practice questions in valid JSON only.' }, { role: 'user', content: prompt }], response_format: { type: 'json_object' }, reasoning_effort: "low", max_tokens: 6000, temperature: 0.8 })
                 });
                 if (!response.ok) throw new Error(`API error ${response.status}`);
                 const data = await response.json();
-                const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+                const parsed = _parseAIJson(data.choices?.[0]?.message?.content || '');
                 if (!Array.isArray(parsed.questions) || !parsed.questions.length) throw new Error('No questions returned.');
                 _practiceQuiz = { questions: parsed.questions, currentIdx: 0, answers: [] };
                 loader.classList.add('hidden');
@@ -7188,9 +7238,9 @@ All questions must be short-answer style (the student types a response). Make th
             try {
                 const apiKey = await getGroqApiKey();
                 const prompt = `Grade this answer against the ideal answer.\n\nQuestion: ${q.question}\nIdeal answer: ${q.idealAnswer}\nStudent's answer: ${userAnswer}\n\nReturn ONLY JSON: {"score": <0.0-1.0>, "feedback": "<one to two sentences explaining what's right/wrong>"}`;
-                const r = await fetch("https://api.groq.com/openai/v1/chat/completions", { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify({ model: 'openai/gpt-oss-120b', messages: [{ role: 'system', content: 'You grade student answers. Output JSON only.' }, { role: 'user', content: prompt }], response_format: { type: 'json_object' }, temperature: 0.2 }) });
+                const r = await fetch("https://api.groq.com/openai/v1/chat/completions", { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify({ model: 'openai/gpt-oss-120b', messages: [{ role: 'system', content: 'You grade student answers. Output JSON only.' }, { role: 'user', content: prompt }], response_format: { type: 'json_object' }, reasoning_effort: "low", max_tokens: 2000, temperature: 0.2 }) });
                 const data = await r.json();
-                const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+                const parsed = _parseAIJson(data.choices?.[0]?.message?.content || '');
                 const score = Math.max(0, Math.min(1, parseFloat(parsed.score) || 0));
                 const feedback = parsed.feedback || '(no feedback)';
                 _practiceQuiz.answers.push({ userAnswer, score, feedback, maxScore: 1 });
