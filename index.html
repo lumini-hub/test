@@ -2557,7 +2557,7 @@ Only return the JSON object, no other text.`;
             showToast("Processing file...", 'info');
             try {
                 let text = ""; if (file.type === "application/pdf") { text = await extractTextFromPDF(file); } else { text = await file.text(); }
-                await processFileTextWithAI(text.substring(0, 20000));
+                await processFileTextWithAI(text.substring(0, 24000));
             } catch (error) { showToast("Failed: " + error.message, 'error'); }
             finally { event.target.value = ''; }
         }
@@ -2611,11 +2611,12 @@ Text (first 3000 chars):
 
             showToast(isQuestionPaper ? "Detected question paper — extracting questions..." : "Detected study notes — generating questions...", 'info');
 
-            let prompt;
-            if (isQuestionPaper) {
-                prompt = `You are an expert at extracting exam questions from question papers, past papers, and quizzes.
+            // Build the generation prompt for a given chunk of document text
+            const buildPrompt = (chunkText, chunkNote) => {
+                if (isQuestionPaper) {
+                    return `You are an expert at extracting exam questions from question papers, past papers, and quizzes.
 
-TASK: Extract ALL questions from this document EXACTLY as they appear. Preserve the original wording.
+TASK: Extract ALL questions from this document EXACTLY as they appear. Preserve the original wording.${chunkNote}
 
 CRITICAL — CORRECT ANSWERS:
 - You MUST identify and include the correct answer for EVERY question. This is mandatory.
@@ -2636,18 +2637,18 @@ RULES:
 7. VERIFY all correct answers are actually correct.
 
 Document text:
-"""${text}"""
+"""${chunkText}"""
 
 Output strictly valid JSON:
 { "questions": [ { "type": "mcq/true-false/short/long/fill-blank/numeric/multiple-response/matching/ordering/code", "text": "...", "options": ["A","B","C","D"], "correctAnswer": 0, "correctAnswers": [0,2], "blanks": ["answer"], "pairs": [{"prompt":"...","answer":"..."}], "items": ["first","second"], "language": "python", "points": 10 } ] }
 Include only the fields relevant to each question type. For fill-blank, text MUST contain "[blank]".`;
-            } else {
-                prompt = `You are an expert exam question writer. Generate high-quality exam questions based on these study notes/content.
+                } else {
+                    return `You are an expert exam question writer. Generate high-quality exam questions based on these study notes/content.
 
-TASK: Create diverse, well-crafted questions that thoroughly test understanding of the material.
+TASK: Create diverse, well-crafted questions that thoroughly test understanding of the material.${chunkNote}
 
 RULES:
-1. Generate 8-15 questions covering ALL major topics and key concepts in the notes.
+1. Generate 5-8 questions covering the major topics and key concepts in this section.
 2. Use a MIX of question types: mcq, true-false, short, fill-blank, numeric (if applicable), ordering (if sequences exist), matching (if related terms/concepts exist).
 3. Vary difficulty: ~30% easy (recall), ~50% medium (application/analysis), ~20% hard (synthesis/evaluation).
 4. MCQ: All 4 options must be plausible. Distractors should be common misconceptions. MUST include "correctAnswer" (0-based index).
@@ -2660,44 +2661,88 @@ RULES:
 11. Do NOT invent facts not present in the notes.
 
 Study notes:
-"""${text}"""
+"""${chunkText}"""
 
 Output strictly valid JSON:
 { "questions": [ { "type": "mcq/true-false/short/long/fill-blank/numeric/ordering/matching", "text": "...", "options": ["A","B","C","D"], "correctAnswer": 0, "blanks": ["answer"], "items": ["first","second"], "pairs": [{"prompt":"...","answer":"..."}], "points": 10 } ] }
 Include only the fields relevant to each question type. For fill-blank, text MUST contain "[blank]".`;
+                }
+            };
+
+            // ---- CHUNKED PROCESSING (respects free-tier 8K TPM by splitting large docs) ----
+            const chunks = _chunkText(text, 5500);
+            let totalCount = 0;
+            let anySucceeded = false;
+            const errors = [];
+
+            for (let ci = 0; ci < chunks.length; ci++) {
+                if (chunks.length > 1) showToast(`Processing section ${ci + 1} of ${chunks.length}...`, 'info');
+                const chunkNote = chunks.length > 1 ? `\n\nNOTE: This is section ${ci + 1} of ${chunks.length} from a larger document. Focus only on the content in THIS section.` : '';
+                const prompt = buildPrompt(chunks[ci], chunkNote);
+                try {
+                    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                        body: JSON.stringify({ model: "openai/gpt-oss-120b", messages: [
+                            { role: "system", content: "You are a precise exam question extractor and generator. Every answer you provide must be factually correct. Always verify your answers. Output valid JSON only, no markdown." },
+                            { role: "user", content: prompt }
+                        ], response_format: { type: "json_object" }, reasoning_effort: "low", max_tokens: 6000, temperature: isQuestionPaper ? 0.1 : 0.7 })
+                    });
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            // Rate limited — wait and retry this chunk once
+                            showToast('Rate limit hit — waiting 30s then continuing...', 'info');
+                            await new Promise(r => setTimeout(r, 30000));
+                            ci--; // retry same chunk
+                            continue;
+                        }
+                        errors.push(`Section ${ci + 1}: error ${response.status}`);
+                        continue;
+                    }
+                    const data = await response.json();
+                    const jsonText = data.choices?.[0]?.message?.content;
+                    const finishReason = data.choices?.[0]?.finish_reason;
+                    if (!jsonText) { errors.push(`Section ${ci + 1}: empty response`); continue; }
+                    let result;
+                    try { result = _parseAIJson(jsonText); }
+                    catch (e) { result = { questions: _salvageQuestions(jsonText) }; }
+                    if (result.questions && Array.isArray(result.questions)) {
+                        result.questions.forEach(q => {
+                            if (!q || !q.type) return;
+                            const validTypes = ['mcq','true-false','short','fill-blank','numeric','long','multiple-response','matching','ordering','code'];
+                            if (validTypes.includes(q.type)) { addQuestion(q.type, {...q, manualGrading: false}); totalCount++; anySucceeded = true; }
+                            else { addQuestion('short', {...q, type:'short', manualGrading: false}); totalCount++; anySucceeded = true; }
+                        });
+                    }
+                } catch (err) {
+                    console.error('Chunk error:', err);
+                    errors.push(`Section ${ci + 1}: ${err.message}`);
+                }
+                // Pace requests to stay under the per-minute token cap (skip delay after the last chunk)
+                if (ci < chunks.length - 1) await new Promise(r => setTimeout(r, 3000));
             }
 
-            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({ model: "openai/gpt-oss-120b", messages: [
-                    { role: "system", content: "You are a precise exam question extractor and generator. Every answer you provide must be factually correct. Always verify your answers. Output valid JSON only, no markdown." },
-                    { role: "user", content: prompt }
-                ], response_format: { type: "json_object" }, reasoning_effort: "low", max_tokens: 16000, temperature: isQuestionPaper ? 0.1 : 0.7 })
-            });
-            if (!response.ok) throw new Error("AI Processing Failed");
-            const data = await response.json();
-            const jsonText = data.choices?.[0]?.message?.content;
-            const finishReason = data.choices?.[0]?.finish_reason;
-            if (jsonText) {
-                let result;
-                try { result = _parseAIJson(jsonText); }
-                catch (e) {
-                    // Truncated JSON — try to salvage complete question objects
-                    result = { questions: _salvageQuestions(jsonText) };
-                    if (!result.questions.length) throw new Error(finishReason === 'length' ? 'Document too long — response was cut off. Try a shorter document or fewer pages.' : 'Could not parse AI response.');
-                }
-                if (result.questions && Array.isArray(result.questions) && result.questions.length) {
-                    let count = 0;
-                    result.questions.forEach(q => {
-                        if (!q || !q.type) return;
-                        const validTypes = ['mcq','true-false','short','fill-blank','numeric','long','multiple-response','matching','ordering','code'];
-                        if (validTypes.includes(q.type)) { addQuestion(q.type, {...q, manualGrading: false}); count++; }
-                        else { addQuestion('short', {...q, type:'short', manualGrading: false}); count++; }
-                    });
-                    if (count === 0) throw new Error("No valid questions found in the document.");
-                    showToast(`${isQuestionPaper ? 'Extracted' : 'Generated'} ${count} questions!${finishReason === 'length' ? ' (some may have been cut off)' : ''}`);
-                } else throw new Error("No valid questions.");
-            } else throw new Error("Empty AI response.");
+            if (totalCount === 0) {
+                throw new Error(errors.length ? errors[0] : "No questions could be generated from this document.");
+            }
+            showToast(`${isQuestionPaper ? 'Extracted' : 'Generated'} ${totalCount} questions${chunks.length > 1 ? ` from ${chunks.length} sections` : ''}!${errors.length ? ` (${errors.length} section(s) had issues)` : ''}`);
+            return;
+        }
+
+        // Split text into chunks of ~maxChars, breaking on paragraph/sentence boundaries where possible
+        function _chunkText(text, maxChars) {
+            if (text.length <= maxChars) return [text];
+            const chunks = [];
+            let remaining = text;
+            while (remaining.length > maxChars) {
+                let cut = remaining.lastIndexOf('\n\n', maxChars);
+                if (cut < maxChars * 0.5) cut = remaining.lastIndexOf('\n', maxChars);
+                if (cut < maxChars * 0.5) cut = remaining.lastIndexOf('. ', maxChars);
+                if (cut < maxChars * 0.5) cut = maxChars;
+                chunks.push(remaining.slice(0, cut).trim());
+                remaining = remaining.slice(cut).trim();
+            }
+            if (remaining.length) chunks.push(remaining);
+            return chunks;
         }
 
         // Salvage complete question objects from truncated JSON (best-effort recovery)
